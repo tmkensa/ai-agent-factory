@@ -4,6 +4,12 @@
 - Portable skill, role contracts, governance guidance, bilingual documentation.
 - Bounded sequential draft workflow, JSON validation, checkpoints, reports, demo and optional Ollama adapter.
 
+## 0.2 preview — implemented on a review branch / معاينة منفذة على فرع مراجعة
+- Modular executive orchestration; planner/researcher/executor/security/tester/evaluator.
+- Dynamic inclusion of the researcher, validated DAG, parallel independent layers, bounded retries and resume.
+- Per-role local model selection, deterministic output checks, explicit digest-bound approval for new Markdown export, project-scoped run storage, token/time measurements and optimization proposals.
+- Local verification: 26 unit tests and both demo examples; no live model verification. See [architecture](docs/ARCHITECTURE.md) and [العربية](docs/ARCHITECTURE.ar.md).
+
 ## Proposed, not delivered / مقترح وغير منفذ
 - 0.2: live-model integration tests, structured task and evidence schemas, measurable baseline comparison, per-role model configuration and actual token metrics.
 - 0.3: declarative dependency graph, dynamic registry, isolated parallel execution, model-provider adapters with explicit data egress approval.
