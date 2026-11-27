@@ -32,8 +32,9 @@ def validate(role, value, task):
         for f in value["findings"]:
             require(isinstance(f,dict) and set(f)=={"source","quote"},"Invalid finding")
             require(isinstance(f["source"],str) and f["source"] in sources,"Unknown source")
-            quote=clean_text(f["quote"],1500)
-            require(quote in sources[f["source"]],"Unverified source quotation")
+            clean_text(f["quote"],1500)
+            quote=f["quote"]
+            require(len(quote)<=1500 and quote in sources[f["source"]],"Unverified source quotation")
     elif role=="executor":
         require(set(value)=={"draft"},"Invalid draft")
         clean_text(value["draft"],40000)
@@ -61,6 +62,7 @@ class Budget:
         require(type(used) is int and 0<=used<=limit,"Invalid previous call count")
         self.limit=limit; self.used=used; self.lock=Lock()
     def reserve(self,count):
+        require(type(count) is int and count>0,"Reservation must be a positive integer")
         with self.lock:
             require(self.used+count<=self.limit,"Call budget exhausted")
             self.used+=count

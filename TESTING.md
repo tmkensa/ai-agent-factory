@@ -20,3 +20,13 @@ The demo score measures literal fixture checks only, not actual AI quality. Live
 - Live Ollama, real external tools, and Windows/macOS execution are not verified. Do not interpret fixture scores as real-world accuracy.
 
 نجحت الاختبارات المحلية الـ26 على Linux، وتشغيل المثالين في الوضع التجريبي. لم يعمل نموذج ذكاء اصطناعي حقيقي، ولم يثبت نجاح اختبارات GitHub Actions بعد. سبب فشل التشغيل الأول غير معروف لأن سجلات الخطأ غير متاحة. لا يُعتمد الإصدار للإنتاج بناءً على هذه الاختبارات.
+
+## Extended verification — 2026-11-27 / الاختبارات الموسعة
+
+- Reconstructed the published Python sources locally and matched Git blob hashes. Original 26 tests passed on Linux, Python 3.13.5.
+- Added nine regression/integration tests. Two defects were reproduced before fixing: invalid budget reservations (zero, negative, boolean and fractional), and non-verbatim research quotations accepted after trimming whitespace.
+- Fixed both; 35/35 tests passed. Python compileall succeeded. Both bilingual demo examples completed with six role calls each. Their 100 scores are fixture checks only.
+- Real loopback HTTP transport tested against a deterministic Ollama-compatible fixture server, including per-role routing and token reporting. Invalid JSON, redirect, oversized response, truncation, and unexpected tool calls rejected. This is not a live AI model test.
+- GitHub Actions run 46024703947 (including failed-job retry) reported all four matrix jobs failed; job details/logs were unavailable (empty steps / BlobNotFound). Added an independent runner-smoke job to help isolate runner issues. No claim that CI is passing.
+
+نجحت 35/35 من الاختبارات محليًا بعد إصلاح خللين في الميزانية والاقتباسات. اختُبر اتصال HTTP محلي بخادم ردود اصطناعية، لا بنموذج حي. لم تتوفر سجلات تشخيص فشل GitHub Actions، ولا يزال الدمج معلقًا حتى التحقق.

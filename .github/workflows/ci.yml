@@ -3,6 +3,11 @@ on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 jobs:
+  runner-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo 'GitHub-hosted runner executed a step without checkout or setup actions'
   test:
     timeout-minutes: 15
     strategy:
