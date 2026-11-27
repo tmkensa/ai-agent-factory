@@ -25,3 +25,6 @@ jobs:
       - run: python -m factory run examples/task.en.json
       - run: python -m factory.architecture run examples/architecture.en.json
       - run: python -m factory.architecture --project arabic run examples/architecture.ar.json
+      - run: python -m factory.platform --project platform-ar run examples/architecture.ar.json
+      - run: python -m factory.platform --project platform-en run examples/architecture.en.json
+      - run: python tests/smoke_platform.py
