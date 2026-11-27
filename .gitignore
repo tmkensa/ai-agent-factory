@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.factory-runs/
+.env
+.env.*
+!.env.example
+.venv/
+*.pem
+*.key

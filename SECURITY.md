@@ -1,0 +1,7 @@
+# Security policy / سياسة الأمان
+
+Version 0.1.0 is experimental, draft-only, and not a production security boundary. The runtime never executes model output, has no arbitrary tool interface, and connects only to loopback for the optional Ollama adapter. The user must trust the local filesystem, Python installation, and local service. Loopback does not guarantee that the service is using a local model. No encrypted memory, authentication, OS sandbox, hard wall-clock budget, or tamper-proof audit log is provided. State and model outputs are plain JSON; avoid secrets, restrict directory access, and delete local runs under your own retention policy. Do not commit them. A model can still be manipulated by untrusted content; manual review is mandatory. Native skill use relies on the host's enforcement, not Markdown.
+
+Report security concerns privately via the repository's private vulnerability reporting if enabled, or contact its maintainer privately. Do not post credentials or exploit details in public issues. No response-time guarantee is made.
+
+الإصدار تجريبي ولا يمثل حاجزًا أمنيًا للإنتاج. لا ينفذ المحرك مخرجات النموذج أو يمنحه أدوات خارجية. الاتصال المحلي لا يضمن أن النموذج نفسه محلي. السجلات نصية غير مشفرة، ولا توجد مصادقة أو عزل على مستوى النظام أو سجل مقاوم للعبث أو حد زمني شامل. لا تحفظ أسرارًا، وقيّد الوصول إلى ملفات التشغيل، ولا ترفعها للمستودع. راجع المسودات بشريًا، واستخدم صلاحيات المضيف عند تشغيل المهارة. أبلغ عن الثغرات بشكل خاص عبر المستودع إن أتيح ذلك أو عبر مالكه، دون نشر أسرار أو تفاصيل استغلال علنًا.
