@@ -1,5 +1,7 @@
 # AI Agent Factory
 
+> **Architecture v0.2 preview:** [English](docs/ARCHITECTURE.md) · [العربية](docs/ARCHITECTURE.ar.md). Run with `python -m factory.architecture`. The v0.1 instructions below remain supported.
+
 **Build smaller, safer and measurable AI agent teams.**
 
 [العربية](README.ar.md) · [Security](SECURITY.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)

@@ -1,5 +1,7 @@
 # مصنع وكلاء الذكاء الاصطناعي — AI Agent Factory
 
+> **معاينة الهيكل v0.2:** [دليل الهيكل المعماري](docs/ARCHITECTURE.ar.md) · [English](docs/ARCHITECTURE.md). التشغيل عبر `python -m factory.architecture`، ويظل الأمر السابق مدعومًا.
+
 [English](README.md) · [الأمان](SECURITY.md) · [خارطة الطريق](ROADMAP.md) · [المساهمة](CONTRIBUTING.md)
 
 **الإصدار الأولي v0.1.0 من تصور V3 — ليس منصة استقلالية جاهزة للإنتاج.**

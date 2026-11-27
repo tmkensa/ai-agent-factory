@@ -1,0 +1,16 @@
+{
+  "goal": "Draft a Laravel release checklist",
+  "context": "Fictional task. Do not execute commands or claim external tests ran.",
+  "language": "en",
+  "criteria": [
+    "Include backups",
+    "Include functional tests",
+    "Include approval before deployment"
+  ],
+  "sources": [
+    {
+      "id": "policy",
+      "text": "Releases require backups, functional tests and owner approval."
+    }
+  ]
+}
