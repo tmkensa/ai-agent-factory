@@ -1,0 +1,3 @@
+# Repository instructions
+
+Use `skills/ai-agent-factory/SKILL.md` for the agent-team design procedure. Keep the reference documents and bilingual READMEs aligned. Run `python -m unittest discover -s tests -v` before proposing changes. Never commit `.factory-runs`, credentials, private task files or model outputs. Runtime must remain draft-only unless a separately reviewed design introduces tool authorization. Do not publish, deploy or install tools without approval.
