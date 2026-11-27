@@ -1,0 +1,110 @@
+"""Opt-in CLI. Review every external action and its scope before approval."""
+import argparse
+import json
+import sys
+import sqlite3
+import subprocess
+from pathlib import Path
+from factory.engine import FactoryError, read_json, require
+from .providers import Router
+from .evidence import fetch, MCP
+from .workspace import digest, stage, sandbox_test, safe_text
+from .operations import Notes, custom_skill, run_specialists, dashboard, compare
+
+
+def runtime(root,project,spec=None,mapping=None,cloud=False):
+    from factory.architecture.memory import Store
+    from factory.architecture.models import DemoBackend
+    from factory.architecture.orchestrator import Orchestrator
+    store=Store(root,project)
+    backend=Router(spec,mapping,cloud) if spec else DemoBackend()
+    require(not mapping or spec,"Role mapping requires default route")
+    return store,Orchestrator(store,backend)
+
+
+def main(argv=None):
+    p=argparse.ArgumentParser(description="AI Agent Factory platform preview")
+    p.add_argument("--root",type=Path,default=Path(".factory-runs/v2")); p.add_argument("--project",default="default")
+    p.add_argument("--route",help="provider/model; omit for offline demo")
+    p.add_argument("--role-route",action="append",default=[],metavar="ROLE=PROVIDER/MODEL")
+    p.add_argument("--allow-cloud",action="store_true",help="Permit data transfer and potentially paid model calls for this invocation")
+    sub=p.add_subparsers(dest="cmd",required=True)
+    r=sub.add_parser("run"); r.add_argument("task",type=Path); r.add_argument("--calls",type=int,default=24); r.add_argument("--specialists",type=Path); r.add_argument("--source",type=Path,action="append",default=[]); r.add_argument("--memory-query"); r.add_argument("--memory-model")
+    for n in ("show","resume"): sub.add_parser(n).add_argument("id")
+    a=sub.add_parser("approve"); a.add_argument("id"); a.add_argument("--digest",required=True); a.add_argument("--output",type=Path,required=True)
+    a=sub.add_parser("web"); a.add_argument("url"); a.add_argument("--host",required=True); a.add_argument("--approve",action="store_true")
+    a=sub.add_parser("mcp"); a.add_argument("--port",type=int,required=True); a.add_argument("--tool",required=True); a.add_argument("--args",type=Path,required=True); a.add_argument("--approve",action="store_true")
+    a=sub.add_parser("skill"); a.add_argument("definition",type=Path)
+    sub.add_parser("digest").add_argument("plan",type=Path)
+    a=sub.add_parser("stage"); a.add_argument("plan",type=Path); a.add_argument("destination",type=Path); a.add_argument("--digest",required=True)
+    a=sub.add_parser("sandbox-test"); a.add_argument("workspace",type=Path); a.add_argument("--image",required=True); a.add_argument("--suite",choices=["python","php-lint"],default="python"); a.add_argument("--approve",action="store_true")
+    a=sub.add_parser("remember"); a.add_argument("file",type=Path); a.add_argument("--embedding-model")
+    a=sub.add_parser("recall"); a.add_argument("query"); a.add_argument("--embedding-model")
+    a=sub.add_parser("schedule"); a.add_argument("task",type=Path); a.add_argument("--interval",type=int,required=True); a.add_argument("--calls",type=int,default=24); a.add_argument("--approve",action="store_true")
+    a=sub.add_parser("compare"); a.add_argument("baseline"); a.add_argument("candidate")
+    sub.add_parser("tick"); sub.add_parser("jobs"); sub.add_parser("cancel").add_argument("id"); sub.add_parser("dashboard").add_argument("output",type=Path)
+    a=p.parse_args(argv)
+    try:
+        cmd=a.cmd
+        if cmd=="web":
+            require(a.approve,"Explicit network read approval required"); result=fetch(a.url,a.host)
+        elif cmd=="mcp": result=MCP(a.port,[a.tool]).call(a.tool,read_json(a.args),a.approve)
+        elif cmd=="skill": print(custom_skill(read_json(a.definition))); return 0
+        elif cmd=="digest": result={"digest":digest(read_json(a.plan,300000))}
+        elif cmd=="stage": result={"workspace":stage(read_json(a.plan,300000),a.destination,a.digest)}
+        elif cmd=="sandbox-test": result=sandbox_test(a.workspace,a.image,a.approve,a.suite)
+        else:
+            mapping=dict(x.split("=",1) for x in a.role_route)
+            store,engine=runtime(a.root,a.project,a.route,mapping,a.allow_cloud)
+            if cmd=="run":
+                from factory.architecture.agents import validate_task
+                task=validate_task(read_json(a.task));
+                task["sources"] += [read_json(path) for path in a.source]
+                if a.memory_query:
+                    notes=Notes(store.root/"platform.sqlite3")
+                    task["sources"] += [{"id":"note:"+x["id"],"text":"OPERATOR NOTE — UNVERIFIED:\n"+x["text"][:11950]} for x in notes.search(a.memory_query,a.memory_model,limit=3)]
+                task=validate_task(task); require(type(a.calls) is int and 1<=a.calls<=30,"Call budget 1–30")
+                extras=[]; used=0
+                if a.specialists:
+                    require(a.route,"Custom specialists require a real model route")
+                    from .operations import specialists
+                    definitions=read_json(a.specialists); roles,_=specialists(definitions)
+                    require(len(task["sources"])+len(roles)<=8 and sum(len(s["text"]) for s in task["sources"])+len(roles)*3050<=32000 and a.calls>=len(roles)+6,"Insufficient source/call budget for specialists")
+                    require(not ({"specialist:"+n for n in roles} & {s["id"] for s in task["sources"]}),"Specialist source ID collision")
+                    safe_text(json.dumps(task,ensure_ascii=False)); evidence,extras=run_specialists(definitions,task,engine.backend,len(roles)); used=len(roles)
+                    task["sources"]+=evidence; task=validate_task(task)
+                rid=engine.create(task,a.calls-used)
+                if extras:
+                    with store.lock(rid):
+                        state=store.load(rid); state["specialist_metrics"]=extras; state["specialist_calls"]=used; store.save(state)
+                print("Run ID: "+rid,file=sys.stderr); result=engine.execute(rid)
+                if extras: result["specialist_metrics"]=extras; result["total_calls_this_invocation"]=result["calls"]+used
+            elif cmd=="resume": result=engine.execute(a.id)
+            elif cmd=="show": result=store.load(a.id)
+            elif cmd=="approve": result=engine.approve(a.id,a.digest,a.output)
+            elif cmd=="compare": result=compare(store,a.baseline,a.candidate)
+            else:
+                notes=Notes(store.root/"platform.sqlite3")
+                if cmd=="remember":
+                    with a.file.open("rb") as f: data=f.read(48001)
+                    require(len(data)<=48000,"Note byte limit"); result={"id":notes.remember(data.decode(),a.embedding_model)}
+                elif cmd=="recall": result=notes.search(a.query,a.embedding_model)
+                elif cmd=="schedule":
+                    from factory.architecture.agents import validate_task
+                    require(not mapping,"Scheduled role routing unsupported"); result={"id":notes.schedule({"task":validate_task(read_json(a.task)),"route":a.route,"calls":a.calls},a.interval,a.approve)}
+                elif cmd=="tick":
+                    def runner(spec):
+                        _,e=runtime(a.root,a.project,spec["route"]); rid=e.create(spec["task"],spec["calls"]); return e.execute(rid)
+                    result=notes.tick(runner)
+                elif cmd=="jobs": result=notes.jobs()
+                elif cmd=="cancel": notes.cancel(a.id); result={"cancelled":a.id}
+                else: result={"dashboard":dashboard(store,notes,a.output)}
+        # No automatic publication. User chooses how to use results.
+        safe_text(json.dumps(result,ensure_ascii=False)); print(json.dumps(result,ensure_ascii=True,indent=2))
+        if cmd=="sandbox-test": return 0 if result["exit_code"]==0 else 2
+        return 2 if cmd in {"run","resume"} and result["status"] in {"FAILED","BLOCKED"} else 0
+    except (FactoryError,OSError,ValueError,KeyError,TypeError,sqlite3.Error,RuntimeError,subprocess.SubprocessError) as exc:
+        # Do not echo potentially sensitive provider or OS exception details.
+        print("Error: "+(str(exc) if isinstance(exc,FactoryError) else type(exc).__name__),file=sys.stderr); return 1
+
+if __name__=="__main__": raise SystemExit(main())

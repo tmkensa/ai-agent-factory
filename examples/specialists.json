@@ -1,0 +1,4 @@
+[
+  {"name":"laravel-domain","job":"Identify Laravel release-specific requirements from supplied task evidence. Distinguish assumptions from verified facts.","depends_on":[]},
+  {"name":"release-risk","job":"Identify omissions and high-risk steps in the domain specialist's draft. Return a draft analysis only.","depends_on":["laravel-domain"]}
+]
