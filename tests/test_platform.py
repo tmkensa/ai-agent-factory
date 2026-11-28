@@ -142,4 +142,21 @@ class PlatformTests(unittest.TestCase):
         with redirect_stdout(io.StringIO()): self.assertEqual(main(["stage",str(path),str(self.root/"staged"),"--digest",d]),0)
         self.assertTrue((self.root/"staged/src/main.py").is_file())
 
+
+    def test_reviewer_prompts_are_distinct_and_evidence_bound(self):
+        task=TASK|{"criteria":["Backup","Tests","Approval"],"language":"ar"}
+        review={"checks":[{"id":i,"passed":False,"reason":"Draft excerpt: missing"} for i in range(3)],"critical":[],"feedback":"Review fixture"}
+        response={"done":True,"message":{"content":json.dumps(review,ensure_ascii=False)}}
+        payload={"task":task,"dependencies":{"executor":{"draft":"قائمة تحقق تجريبية"},"security":review,"tester":review}}
+        prompts={}
+        for role in ("security","tester","evaluator"):
+            with self.subTest(role=role),patch("factory.platform.providers.request",return_value=response) as call:
+                Router("ollama/local").call(role,payload)
+                prompts[role]=call.call_args.args[2]["messages"][0]["content"]
+        self.assertEqual(len(set(prompts.values())),3)
+        self.assertIn("short exact quotation",prompts["security"])
+        self.assertIn("NOT_RUN",prompts["tester"])
+        self.assertIn("do not copy or paraphrase",prompts["evaluator"].lower())
+        self.assertIn("document completeness from release readiness",prompts["evaluator"].lower())
+
 if __name__=="__main__": unittest.main()

@@ -23,3 +23,17 @@ Use the existing show/resume/approve commands with the same project and route co
 Unit tests use deterministic doubles or mocked transport; they do not establish live-model quality or security. Re-run real Ollama, Gemini and hybrid tests after checkout. Compare scores only for matching original task contracts and interpret model review as provisional. No release or production claim.
 
 Integration smoke additionally exercises the dynamic CLI over actual loopback HTTP with synthetic provider replies, per-agent model selection and a local digest-approved export. No live inference is performed by this fixture. The CLI plan command is read-only and makes no model calls. Approval requires explicit digest and destination but no provider credentials because it is a local export.
+
+## Controlled hybrid validation: Laravel pre-deployment checklist
+
+The expanded Arabic task and criterion-owned team definition are designed to test checklist quality rather than a generic explanation.
+
+```powershell
+python -m factory.platform --project v05-hybrid-laravel --route ollama/qwen2.5-coder:3b --role-route security=gemini/gemini-3.1-flash-lite --role-route tester=gemini/gemini-3.1-flash-lite --role-route evaluator=gemini/gemini-3.1-flash-lite --allow-cloud --output-retries 2 run examples/architecture.ar.json --team examples/team-checklist.json --workers 2 --calls 24
+```
+
+The default route sends the three specialists and executor to Ollama; the mandatory security, tester and evaluator reviews go to Gemini. Set `GEMINI_API_KEY` in the current shell before running. `--allow-cloud` explicitly permits sending the task, specialist drafts, executor draft and review context to Gemini; use only synthetic/non-sensitive data and never put credentials in task files or the repository.
+
+A passing run should end as `PENDING_APPROVAL`, not as a deployment or export. `BLOCKED` means the review gate did not pass. Inspect all three review artifacts and verify that each reason cites a real draft excerpt. A checklist item may correctly remain `NOT_RUN`; that is not the same as claiming a test passed. Do not approve/export this experiment. `--output-retries` controls schema recovery and is separate from the two review-revision rounds.
+
+The local `tests/smoke_platform.py` fixture temporarily binds port `11434`; do not run that smoke script while the Ollama service is listening on that port. Unit tests do not require a live Ollama service.
