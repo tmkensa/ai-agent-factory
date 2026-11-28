@@ -29,3 +29,8 @@ For Arabic guidance see [Arabic guide](references/arabic.md).
 ## Runtime compatibility (v0.4 preview)
 
 The companion Python runtime has model routing, bounded DAG drafting/review, checkpointing and explicit approval. It does not spawn native host agents: use the host's verified tools for native sessions and identify that coordination honestly. Use `docs/RELIABILITY.md` when available in the repository. New runtime runs use checkpoint v3; older v2 runs are archival. Never treat model review or declared-reference checks as proof of production correctness.
+
+
+## Dynamic team runtime (v0.5 preview)
+
+If installed, inspect `python -m factory.platform team-plan TASK --team auto` before execution. `--team single` means one producer with mandatory reviewers, not one total call. Use operator-approved criterion ownership and a reviewed team definition. The v4 checkpoint ledger preserves artifact versions and reruns owners and descendants. It is not native host orchestration. See docs/DYNAMIC.md when present. Never bypass the human approval or review gate.

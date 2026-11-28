@@ -49,6 +49,9 @@ with tempfile.TemporaryDirectory() as directory:
                     assert self.path=='/api/chat'; prompt=req['messages'][0]['content']; payload=json.loads(req['messages'][1]['content'])
                     roles={'Plan the task.':'planner','Use only supplied sources;':'researcher','Draft the deliverable':'executor','Review privacy':'security','Review mandatory':'tester','Evaluate each':'evaluator','Perform the operator-defined':'specialist'}
                     role=next(v for k,v in roles.items() if prompt.startswith(k))
+                    if role=='specialist' and 'criterion_ids' in payload.get('specialist',{}):
+                        expected='fixture-backup' if payload['specialist']['name']=='backup' else 'fixture'
+                        assert req['model']==expected
                     val={'text':'Synthetic specialist fixture; unverified.'} if role=='specialist' else DemoBackend().call(role,payload)[0]
                     response={'done':True,'message':{'content':json.dumps(val,ensure_ascii=False)},'prompt_eval_count':12,'eval_count':5}
                 raw=json.dumps(response).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(raw))); self.end_headers(); self.wfile.write(raw)
@@ -69,4 +72,11 @@ with tempfile.TemporaryDirectory() as directory:
             res=cli('approve',rr['id'],'--digest',rr['draft_digest'],'--output',d/'approved.md'); assert res['status']=='EXPORTED'
             cli('remember',note,'--embedding-model','fixture'); assert len(cli('recall','backup','--embedding-model','fixture'))==1
             print('PASS: actual loopback HTTP model transport through full custom-agent pipeline (8 fixture calls), human approval/export and embedding retrieval.')
+            dynamic=cli('--route','ollama/fixture','--role-route','agent:backup=ollama/fixture-backup','run','examples/architecture.ar.json','--team','examples/team-checklist.json','--calls',18)
+            assert dynamic['status']=='PENDING_APPROVAL' and dynamic['calls']==7 and len(dynamic['artifact_versions'])==7
+            assert dynamic['owners']==['backup','tests','approval']
+            assert cli('show',dynamic['id'])['version']==4
+            assert cli('--route','ollama/fixture','--role-route','agent:backup=ollama/fixture-backup','resume',dynamic['id'])==dynamic
+            assert cli('approve',dynamic['id'],'--digest',dynamic['draft_digest'],'--output',d/'dynamic-approved.md')['status']=='EXPORTED'
+            print('PASS: actual loopback HTTP dynamic DAG, per-agent route, artifact ledger, resume and digest-bound export (7 fixture calls).')
         finally:srv.shutdown();srv.server_close();t.join()

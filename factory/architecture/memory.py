@@ -42,6 +42,9 @@ class Store:
                     if s.get("version")==3:
                         from .state import validate_state
                         validate_state(s,path.name)
+                    elif s.get("version")==4:
+                        from .dynamic import validate_dynamic
+                        validate_dynamic(s,path.name)
                     yield {"id":s["id"],"status":s["status"],"backend":s["backend"],"events":s["events"],"gate":s.get("gate")}
                 except (OSError,ValueError,KeyError,TypeError,FactoryError):
                     yield {"id":path.name,"status":"CORRUPT","backend":"unknown","events":[],"gate":None}
@@ -51,13 +54,13 @@ def optimization(store):
     aggregates={}
     runs=0
     for state in store.summaries():
-        if state["backend"]=="demo": continue
+        if state["backend"] in {"demo","unknown"}: continue
         runs+=1
         for event in state["events"]:
             a=aggregates.setdefault(event["role"],{"calls":0,"failures":0,"seconds":0.0})
             a["calls"]+=1
             a["failures"]+=event["status"]!="ok"
-            a["seconds"]+=event["seconds"]
+            a["seconds"]+=event.get("seconds",0)
     if not aggregates:
         return {"measured_runs":runs,"roles":aggregates,"proposal":"Collect real-model baseline runs first; demo runs are excluded."}
     weakest=max(aggregates,key=lambda n:(aggregates[n]["failures"]/aggregates[n]["calls"],aggregates[n]["seconds"]/aggregates[n]["calls"]))
