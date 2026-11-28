@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path, PurePosixPath
 from factory.engine import require
 
-SECRET=re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|(?:sk-|gh[pousr]_)[A-Za-z0-9_-]{16,}|(?:AKIA|ASIA)[A-Z0-9]{16}")
+from factory.architecture.contracts import SECRET
 
 def safe_text(text):
     require(isinstance(text,str) and not SECRET.search(text),"Potential secret detected; action denied")

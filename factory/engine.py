@@ -159,10 +159,33 @@ class Engine:
         try:
             state = read_json(folder/'state.json', 2_000_000)
             require(state['id']==run_id and state['version']==VERSION and state['backend']==self.backend.name and state['model']==self.backend.model, 'Checkpoint/backend mismatch')
-            if state['phase'] == 'done':
-                return self.finish(folder,state)
             task = validate_task(state['task'])
+            require(type(state['revisions']) is int and 0<=state['revisions']<=2,'Invalid checkpoint revisions')
             max_calls = 1 + 2 * (1 + state['revisions'])
+            require(type(state['calls']) is int and 0<=state['calls']<=max_calls,'Invalid checkpoint calls')
+            require(type(state['round']) is int and 0<=state['round']<=state['revisions'],'Invalid checkpoint round')
+            require(state['phase'] in {'planner','writer','reviewer','done'} and state['status'] in {'READY','RUNNING','FAILED','BLOCKED','REVIEWED_DRAFT'},'Invalid checkpoint phase/status')
+            history=state['history']
+            require(isinstance(history,list) and len(history)<=state['calls'],'Invalid checkpoint history')
+            prior=0
+            for item in history:
+                require(isinstance(item,dict) and item.get('role') in {'planner','writer','reviewer'} and type(item.get('call')) is int and prior<item['call']<=state['calls'],'Invalid history entry')
+                require(type(item.get('round')) is int and 0<=item['round']<=state['round'],'Invalid history round')
+                validate_output(item['role'],item['output'],len(task['criteria']))
+                prior=item['call']
+            for role,key,field in [('planner','plan','steps'),('writer','draft','draft'),('reviewer','review',None)]:
+                entries=[h['output'] for h in history if h['role']==role]
+                if entries:
+                    expected=entries[-1][field] if field else entries[-1]
+                    require(state.get(key)==expected,'Checkpoint output mismatch')
+            if state['phase']=='done':
+                require(state['status'] in {'BLOCKED','REVIEWED_DRAFT'},'Invalid terminal checkpoint')
+                if state['status']=='REVIEWED_DRAFT':
+                    require(bool(history) and history[-1]['role']=='reviewer' and 'draft' in state and 'review' in state,'Missing terminal review')
+                    score,passed=assess(state['review'])
+                    require(passed and state.get('score')==score,'Invalid terminal review')
+                return self.finish(folder,state)
+            require(state['status'] not in {'BLOCKED','REVIEWED_DRAFT'},'Invalid active checkpoint')
             started = time.monotonic()
             while state['phase'] != 'done':
                 if state['calls'] >= max_calls:

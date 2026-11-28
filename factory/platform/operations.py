@@ -153,8 +153,8 @@ def dashboard(store,notes,destination):
 
 def compare(store, first, second):
     a,b=store.load(first),store.load(second)
-    require(digest(a["task"])==digest(b["task"]),"Compare identical task contracts only")
+    require(digest(a.get("original_task",a["task"]))==digest(b.get("original_task",b["task"])),"Compare identical task contracts only")
     def metrics(state):
         events=state["events"]+state.get("specialist_metrics",[])
-        return {"status":state["status"],"gate_score":(state.get("gate") or {}).get("score"),"calls":state["calls"]+state.get("specialist_calls",0),"sum_role_seconds":round(sum(e["seconds"] for e in events),3),"backend":state["backend"]}
+        return {"status":state["status"],"gate_score":(state.get("gate") or {}).get("score"),"calls":state["calls"]+state.get("specialist_calls",0),"sum_role_seconds":round(sum(e.get("seconds",0) for e in events),3),"backend":state["backend"]}
     return {"baseline":metrics(a),"candidate":metrics(b),"warning":"Gate scores are not independent factual or security assurance; demo and model scores are not comparable. Sum of role seconds is not wall time. No automatic adoption."}

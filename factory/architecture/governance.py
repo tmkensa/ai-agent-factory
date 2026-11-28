@@ -6,7 +6,7 @@ from pathlib import Path
 from threading import Lock
 from factory.engine import require, clean_text
 
-SECRET = re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|(?:sk-|gh[pousr]_)[A-Za-z0-9_-]{16,}|(?:AKIA|ASIA)[A-Z0-9]{16}")
+from .contracts import SECRET
 ROLES_WITH_REVIEW = {"security","tester","evaluator"}
 
 def canonical(data):

@@ -107,3 +107,8 @@ python -m factory resume RUN_ID
 - Ollama: https://docs.ollama.com/api/chat
 
 [ترخيص MIT](LICENSE)
+
+
+## معاينة v0.4
+
+راجع [دليل الموثوقية](docs/RELIABILITY.ar.md). حالات التشغيل الجديدة بالإصدار 3؛ الحالات السابقة 2 للأرشيف فقط في هذه المعاينة. موصلات المضيفين والجاهزية الإنتاجية لم تكتمل.
