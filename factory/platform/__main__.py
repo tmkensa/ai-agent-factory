@@ -30,7 +30,8 @@ def main(argv=None):
     p.add_argument("--output-retries",type=int,choices=[0,1,2],default=1,help="Bounded schema recovery per role/round; all attempts charged")
     p.add_argument("--allow-cloud",action="store_true",help="Permit data transfer and potentially paid model calls for this invocation")
     sub=p.add_subparsers(dest="cmd",required=True)
-    r=sub.add_parser("run"); r.add_argument("task",type=Path); r.add_argument("--calls",type=int,default=24); r.add_argument("--specialists",type=Path); r.add_argument("--source",type=Path,action="append",default=[]); r.add_argument("--memory-query"); r.add_argument("--memory-model")
+    r=sub.add_parser("run"); r.add_argument("task",type=Path); r.add_argument("--calls",type=int,default=24); r.add_argument("--specialists",type=Path); r.add_argument("--source",type=Path,action="append",default=[]); r.add_argument("--memory-query"); r.add_argument("--memory-model"); r.add_argument("--team",help="auto, single, multi or path to operator-defined team JSON"); r.add_argument("--workers",type=int,choices=[1,2,3,4],default=2)
+    a=sub.add_parser("team-plan"); a.add_argument("task",type=Path); a.add_argument("--team",default="auto"); a.add_argument("--workers",type=int,choices=[1,2,3,4],default=2)
     for n in ("show","resume"): sub.add_parser(n).add_argument("id")
     a=sub.add_parser("approve"); a.add_argument("id"); a.add_argument("--digest",required=True); a.add_argument("--output",type=Path,required=True)
     a=sub.add_parser("web"); a.add_argument("url"); a.add_argument("--host",required=True); a.add_argument("--approve",action="store_true")
@@ -53,6 +54,10 @@ def main(argv=None):
         elif cmd=="mcp": result=MCP(a.port,[a.tool]).call(a.tool,read_json(a.args),a.approve)
         elif cmd=="skill": print(custom_skill(read_json(a.definition))); return 0
         elif cmd=="digest": result={"digest":digest(read_json(a.plan,300000))}
+        elif cmd=="team-plan":
+            from factory.architecture.team import make_plan
+            selection=a.team if a.team in {"auto","single","multi"} else read_json(a.team)
+            result=make_plan(read_json(a.task),selection,a.workers)
         elif cmd=="contract-check":
             from factory.architecture.artifact_contract import check
             result=check(read_json(a.contract,300000),read_json(a.references,300000))
@@ -69,16 +74,35 @@ def main(argv=None):
                     notes=Notes(store.root/"platform.sqlite3")
                     task["sources"] += [{"id":"note:"+x["id"],"text":"OPERATOR NOTE — UNVERIFIED:\n"+x["text"][:11950]} for x in notes.search(a.memory_query,a.memory_model,limit=3)]
                 task=validate_task(task); require(type(a.calls) is int and 1<=a.calls<=30,"Call budget 1–30")
-                definitions=read_json(a.specialists) if a.specialists else None
-                rid=engine.create(task,a.calls,specialist_definitions=definitions)
+                if a.team:
+                    from factory.architecture.dynamic import DynamicEngine
+                    require(not a.specialists,"Use team definitions or legacy specialists, not both")
+                    selection=a.team if a.team in {"auto","single","multi"} else read_json(a.team)
+                    engine=DynamicEngine(store,engine.backend,a.output_retries if a.route else 0)
+                    rid=engine.create(task,selection,a.workers,a.calls)
+                else:
+                    require(not any(k.startswith("agent:") for k in mapping),"Per-agent routes require --team")
+                    definitions=read_json(a.specialists) if a.specialists else None
+                    rid=engine.create(task,a.calls,specialist_definitions=definitions)
                 print("Run ID: "+rid,file=sys.stderr); result=engine.execute(rid)
-            elif cmd=="resume": result=engine.execute(a.id)
+            elif cmd=="resume":
+                if store.load(a.id).get("version")==4:
+                    from factory.architecture.dynamic import DynamicEngine
+                    engine=DynamicEngine(store,engine.backend)
+                result=engine.execute(a.id)
             elif cmd=="show":
                 result=store.load(a.id)
                 if result.get("version")==3:
                     from factory.architecture.state import validate_state
                     validate_state(result,a.id)
-            elif cmd=="approve": result=engine.approve(a.id,a.digest,a.output)
+                elif result.get("version")==4:
+                    from factory.architecture.dynamic import validate_dynamic
+                    validate_dynamic(result,a.id)
+            elif cmd=="approve":
+                if store.load(a.id).get("version")==4:
+                    from factory.architecture.dynamic import DynamicEngine
+                    engine=DynamicEngine(store,engine.backend)
+                result=engine.approve(a.id,a.digest,a.output)
             elif cmd=="compare": result=compare(store,a.baseline,a.candidate)
             else:
                 notes=Notes(store.root/"platform.sqlite3")

@@ -1,0 +1,27 @@
+{
+  "agents": [
+    {
+      "name": "backup",
+      "job": "Specify backup, verification, and restoration steps.",
+      "depends_on": []
+    },
+    {
+      "name": "tests",
+      "job": "Specify functional acceptance checks and evidence.",
+      "depends_on": []
+    },
+    {
+      "name": "approval",
+      "job": "Specify explicit human approval and rollback boundary.",
+      "depends_on": [
+        "backup",
+        "tests"
+      ]
+    }
+  ],
+  "owners": [
+    "backup",
+    "tests",
+    "approval"
+  ]
+}

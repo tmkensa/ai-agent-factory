@@ -36,3 +36,8 @@
 - v0.8: versioned skill factory, curated learning and controlled benchmark-based optimization.
 - v0.9: interactive project/agent/model management, audit and resource dashboard.
 - v1.0: independent security review, live-provider/native integration and load tests; explicit release approval.
+
+
+### v0.5 preview implementation
+
+Opt-in deterministic strategy selection, operator-defined specialist DAG, preassigned criterion ownership, versioned local artifact ledger, bounded direct dependency context, per-agent model routing, and targeted repair are implemented in the new dynamic runtime. AI-generated team proposals, semantic context optimization, source-derived contracts and native sessions remain future work; verify live behavior before promotion.

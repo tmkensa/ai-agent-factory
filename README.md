@@ -125,3 +125,8 @@ See [PUBLISHING.md](PUBLISHING.md) for GitHub publication in both languages. The
 ## v0.4 reliability preview
 
 See [reliability guide](docs/RELIABILITY.md). New checkpoints are v3; previous v2 runs are archival only in this preview. Native host adapters and production assurance remain unfinished.
+
+
+## v0.5 dynamic team preview
+
+Inspect a plan with `python -m factory.platform team-plan examples/architecture.ar.json --team examples/team-checklist.json`. Opt in with `run ... --team auto` or an explicit team definition. See [dynamic team guide](docs/DYNAMIC.md). Existing v0.4 runs remain compatible; the new path has versioned artifacts and targeted repair.
