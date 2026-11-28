@@ -24,3 +24,8 @@ Transform the user's goal into a measurable, safe workflow. Prefer one agent or 
 If native agents are unavailable, state that clearly and use the host as a single agent or simulation. The companion Python runtime (if separately installed) supports draft-only planner/writer/reviewer calls, not arbitrary autonomous action. Do not assume it exists inside the skill folder.
 
 For Arabic guidance see [Arabic guide](references/arabic.md).
+
+
+## Runtime compatibility (v0.4 preview)
+
+The companion Python runtime has model routing, bounded DAG drafting/review, checkpointing and explicit approval. It does not spawn native host agents: use the host's verified tools for native sessions and identify that coordination honestly. Use `docs/RELIABILITY.md` when available in the repository. New runtime runs use checkpoint v3; older v2 runs are archival. Never treat model review or declared-reference checks as proof of production correctness.

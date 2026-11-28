@@ -3,7 +3,7 @@ import re
 import uuid
 from pathlib import Path
 from contextlib import contextmanager
-from factory.engine import require, read_json, save_json
+from factory.engine import require, read_json, save_json, FactoryError
 
 PROJECT=re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,47}\Z")
 RUN=re.compile(r"[0-9a-f]{32}\Z")
@@ -39,8 +39,12 @@ class Store:
             if RUN.fullmatch(path.name) and path.is_dir() and not path.is_symlink():
                 try:
                     s=self.load(path.name)
+                    if s.get("version")==3:
+                        from .state import validate_state
+                        validate_state(s,path.name)
                     yield {"id":s["id"],"status":s["status"],"backend":s["backend"],"events":s["events"],"gate":s.get("gate")}
-                except (OSError,ValueError,KeyError): continue
+                except (OSError,ValueError,KeyError,TypeError,FactoryError):
+                    yield {"id":path.name,"status":"CORRUPT","backend":"unknown","events":[],"gate":None}
 
 def optimization(store):
     """Deterministic recommendation only. Does not mutate prompts or permissions."""

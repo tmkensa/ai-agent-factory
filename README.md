@@ -120,3 +120,8 @@ See [PUBLISHING.md](PUBLISHING.md) for GitHub publication in both languages. The
 - Ollama chat API: https://docs.ollama.com/api/chat
 
 [MIT License](LICENSE)
+
+
+## v0.4 reliability preview
+
+See [reliability guide](docs/RELIABILITY.md). New checkpoints are v3; previous v2 runs are archival only in this preview. Native host adapters and production assurance remain unfinished.
