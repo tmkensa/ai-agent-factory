@@ -37,6 +37,7 @@ def main(argv=None):
     a=sub.add_parser("mcp"); a.add_argument("--port",type=int,required=True); a.add_argument("--tool",required=True); a.add_argument("--args",type=Path,required=True); a.add_argument("--approve",action="store_true")
     a=sub.add_parser("skill"); a.add_argument("definition",type=Path)
     sub.add_parser("digest").add_argument("plan",type=Path)
+    a=sub.add_parser("contract-check"); a.add_argument("contract",type=Path); a.add_argument("references",type=Path)
     a=sub.add_parser("stage"); a.add_argument("plan",type=Path); a.add_argument("destination",type=Path); a.add_argument("--digest",required=True)
     a=sub.add_parser("sandbox-test"); a.add_argument("workspace",type=Path); a.add_argument("--image",required=True); a.add_argument("--suite",choices=["python","php-lint"],default="python"); a.add_argument("--approve",action="store_true")
     a=sub.add_parser("remember"); a.add_argument("file",type=Path); a.add_argument("--embedding-model")
@@ -52,6 +53,9 @@ def main(argv=None):
         elif cmd=="mcp": result=MCP(a.port,[a.tool]).call(a.tool,read_json(a.args),a.approve)
         elif cmd=="skill": print(custom_skill(read_json(a.definition))); return 0
         elif cmd=="digest": result={"digest":digest(read_json(a.plan,300000))}
+        elif cmd=="contract-check":
+            from factory.architecture.artifact_contract import check
+            result=check(read_json(a.contract,300000),read_json(a.references,300000))
         elif cmd=="stage": result={"workspace":stage(read_json(a.plan,300000),a.destination,a.digest)}
         elif cmd=="sandbox-test": result=sandbox_test(a.workspace,a.image,a.approve,a.suite)
         else:
@@ -69,7 +73,11 @@ def main(argv=None):
                 rid=engine.create(task,a.calls,specialist_definitions=definitions)
                 print("Run ID: "+rid,file=sys.stderr); result=engine.execute(rid)
             elif cmd=="resume": result=engine.execute(a.id)
-            elif cmd=="show": result=store.load(a.id)
+            elif cmd=="show":
+                result=store.load(a.id)
+                if result.get("version")==3:
+                    from factory.architecture.state import validate_state
+                    validate_state(result,a.id)
             elif cmd=="approve": result=engine.approve(a.id,a.digest,a.output)
             elif cmd=="compare": result=compare(store,a.baseline,a.candidate)
             else:
@@ -91,6 +99,7 @@ def main(argv=None):
         # No automatic publication. User chooses how to use results.
         safe_text(json.dumps(result,ensure_ascii=False)); print(json.dumps(result,ensure_ascii=True,indent=2))
         if cmd=="sandbox-test": return 0 if result["exit_code"]==0 else 2
+        if cmd=="contract-check": return 0 if result["passed"] else 2
         return 2 if cmd in {"run","resume"} and result["status"] in {"FAILED","BLOCKED"} else 0
     except (FactoryError,OSError,ValueError,KeyError,TypeError,sqlite3.Error,RuntimeError,subprocess.SubprocessError) as exc:
         # Do not echo potentially sensitive provider or OS exception details.

@@ -153,6 +153,9 @@ def dashboard(store,notes,destination):
 
 def compare(store, first, second):
     a,b=store.load(first),store.load(second)
+    from factory.architecture.state import validate_state
+    for rid,state in ((first,a),(second,b)):
+        if state.get("version")==3: validate_state(state,rid)
     require(digest(a.get("original_task",a["task"]))==digest(b.get("original_task",b["task"])),"Compare identical task contracts only")
     def metrics(state):
         events=state["events"]+state.get("specialist_metrics",[])

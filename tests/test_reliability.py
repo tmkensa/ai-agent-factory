@@ -80,3 +80,32 @@ class Reliability(unittest.TestCase):
         s=role_schema("tester",3)["properties"]["checks"]
         self.assertEqual((s["minItems"],s["maxItems"]),(3,3))
         self.assertEqual(s["items"]["properties"]["id"]["maximum"],2)
+
+    def test_valid_but_modified_review_is_rejected(self):
+        e=Orchestrator(self.store,Model()); rid=e.create(TASK); r=e.execute(rid)
+        s=self.store.load(rid); s["outputs"]["security"]["feedback"]="Changed after review"; self.store.save(s)
+        with self.assertRaises(FactoryError): e.execute(rid)
+        self.assertEqual(list(self.store.summaries())[0]["status"],"CORRUPT")
+        with self.assertRaises(FactoryError): e.approve(rid,r["draft_digest"],self.root/"bad.md")
+    def test_legacy_valid_range_budget_change(self):
+        e=Engine(self.root,Demo()); rid=e.create({k:v for k,v in TASK.items() if k!="sources"},0)
+        p=self.root/rid/"state.json"; s=read_json(p); s["revisions"]=2; save_json(p,s)
+        with self.assertRaises(FactoryError): e.execute(rid)
+    def test_contract_checks_schema_drift(self):
+        from factory.architecture.artifact_contract import check
+        c={"version":1,"entities":{"invoice_sequences":{"sequence_prefix":{"type":"string","nullable":False}}},"enums":{"status":["active"]}}
+        r={"version":1,"fields":[{"id":"a","entity":"invoice_sequences","field":"year","type":"integer","writes_null":False},{"id":"b","entity":"invoice_sequences","field":"sequence_prefix","type":"integer","writes_null":True}],"enum_values":[{"id":"c","enum":"status","value":"invalid"}]}
+        result=check(c,r)
+        self.assertFalse(result["passed"])
+        self.assertEqual({x["code"] for x in result["issues"]},{"UNKNOWN_FIELD","FIELD_TYPE_MISMATCH","NULL_NOT_ALLOWED","UNKNOWN_ENUM_VALUE"})
+        r["fields"]=[{"id":"a","entity":"invoice_sequences","field":"sequence_prefix","type":"string","writes_null":False}]
+        r["enum_values"]=[{"id":"c","enum":"status","value":"active"}]
+        self.assertTrue(check(c,r)["passed"])
+    def test_contract_rejects_empty_or_duplicate_manifest(self):
+        from factory.architecture.artifact_contract import check
+        c={"version":1,"entities":{"t":{"x":{"type":"integer","nullable":False}}},"enums":{}}
+        r={"version":1,"fields":[],"enum_values":[]}
+        with self.assertRaises(FactoryError): check(c,r)
+        item={"id":"a","entity":"t","field":"x","type":"integer","writes_null":False}
+        r["fields"]=[item,item]
+        with self.assertRaises(FactoryError): check(c,r)

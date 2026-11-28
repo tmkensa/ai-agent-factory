@@ -25,3 +25,14 @@
 - Independent security review, adversarial evaluation and measured version comparisons before a stable release.
 
 المنصة الآن معاينة تطوير، وليست جاهزة للإنتاج. تشمل الوظائف السابقة ضمن حدود محلية وموافقات صريحة. تُستكمل الاختبارات الحية والعزل والمراجعة الأمنية قبل إصدار مستقر؛ لا تعني الاختبارات الحتمية نجاح نموذج حي.
+
+
+## Post-acceptance architecture milestones
+
+- v0.4: reliability, durable budget, contract and output validation foundations (preview).
+- v0.5: first-class custom DAG nodes, artifact ownership, targeted repair, configurable bounded concurrency.
+- v0.6: model capability registry, approved fallback, security and resource controls.
+- v0.7: optional verified native host adapters and telemetry (Antigravity, Codex, Claude Code); retain standalone runtime.
+- v0.8: versioned skill factory, curated learning and controlled benchmark-based optimization.
+- v0.9: interactive project/agent/model management, audit and resource dashboard.
+- v1.0: independent security review, live-provider/native integration and load tests; explicit release approval.

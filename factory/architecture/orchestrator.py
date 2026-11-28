@@ -82,7 +82,9 @@ class Orchestrator:
                     retry=[]; hard_failed=False
                     for n,(output,event) in result.items():
                         records[n].update(event)
-                        if output is not None: outputs[n]=output
+                        if output is not None:
+                            outputs[n]=output
+                            records[n]["output_digest"]=digest(output)
                         else:
                             failures=sum(e["role"]==n and e["kind"]==kind and e["round"]==s["round"] and e["status"]=="failed" for e in s["events"])
                             if event["error_code"] in RETRYABLE and failures<=s["output_retries"]: retry.append(n)

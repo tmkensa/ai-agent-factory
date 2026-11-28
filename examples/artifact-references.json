@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "fields": [
+    {
+      "id": "invoice-sequence",
+      "entity": "invoice_sequences",
+      "field": "sequence_prefix",
+      "type": "string",
+      "writes_null": false
+    },
+    {
+      "id": "lock-expiry",
+      "entity": "idempotency_keys",
+      "field": "locked_until",
+      "type": "datetime",
+      "writes_null": false
+    }
+  ],
+  "enum_values": [
+    {
+      "id": "renewal-state",
+      "enum": "subscription_status",
+      "value": "active"
+    }
+  ]
+}

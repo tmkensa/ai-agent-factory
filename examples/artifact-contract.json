@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "entities": {
+    "invoice_sequences": {
+      "sequence_prefix": {
+        "type": "string",
+        "nullable": false
+      }
+    },
+    "idempotency_keys": {
+      "locked_until": {
+        "type": "datetime",
+        "nullable": false
+      }
+    }
+  },
+  "enums": {
+    "subscription_status": [
+      "pending",
+      "active",
+      "cancelled"
+    ]
+  }
+}

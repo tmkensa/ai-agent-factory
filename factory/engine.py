@@ -5,6 +5,7 @@ import time
 import uuid
 import os
 import http.client
+import hashlib
 from pathlib import Path
 
 VERSION = 1
@@ -41,6 +42,10 @@ def read_json(path, max_bytes=128000):
         raw = f.read(max_bytes + 1)
     require(len(raw) <= max_bytes, 'Input file too large')
     return json.loads(raw.decode('utf-8'))
+
+def task_fingerprint(task, revisions):
+    payload=json.dumps({"task":task,"revisions":revisions},sort_keys=True,ensure_ascii=False,separators=(",",":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 def save_json(path, data):
     path = Path(path)
@@ -142,6 +147,7 @@ class Engine:
         folder = self.root / run_id
         folder.mkdir(mode=0o700)
         state = {'version':VERSION,'id':run_id,'task':task,'backend':self.backend.name,'model':self.backend.model,'revisions':revisions,'calls':0,'round':0,'phase':'planner','status':'READY','history':[]}
+        state['contract_digest']=task_fingerprint(task,revisions)
         save_json(folder/'state.json',state)
         return run_id
     def folder(self, run_id):
@@ -161,6 +167,8 @@ class Engine:
             require(state['id']==run_id and state['version']==VERSION and state['backend']==self.backend.name and state['model']==self.backend.model, 'Checkpoint/backend mismatch')
             task = validate_task(state['task'])
             require(type(state['revisions']) is int and 0<=state['revisions']<=2,'Invalid checkpoint revisions')
+            if 'contract_digest' in state:
+                require(state['contract_digest']==task_fingerprint(task,state['revisions']),'Checkpoint contract mismatch')
             max_calls = 1 + 2 * (1 + state['revisions'])
             require(type(state['calls']) is int and 0<=state['calls']<=max_calls,'Invalid checkpoint calls')
             require(type(state['round']) is int and 0<=state['round']<=state['revisions'],'Invalid checkpoint round')

@@ -43,8 +43,16 @@ def validate_state(s,rid):
     for i,e in enumerate(ev,1):
         require(isinstance(e,dict) and e.get("attempt")==i and e.get("status") in {"reserved","interrupted","ok","failed"} and type(e.get("round")) is int and 0<=e["round"]<=s["round"],"Invalid attempt record")
         require(e.get("kind") in {"role","specialist"} and e.get("role") in (roles if e["kind"]=="specialist" else nodes),"Unknown attempt role")
-    for n in spec: require(any(e["kind"]=="specialist" and e["role"]==n and e["status"]=="ok" for e in ev),"Specialist lacks successful attempt")
-    for n in out: require(any(e["kind"]=="role" and e["role"]==n and e["status"]=="ok" and (n in {"planner","researcher"} or e["round"]==s["round"]) for e in ev),"Role lacks successful attempt")
+    for n,v in spec.items():
+        matches=[e for e in ev if e["kind"]=="specialist" and e["role"]==n and e["status"]=="ok"]
+        require(bool(matches) and matches[-1].get("output_digest")==digest(v),"Specialist output digest mismatch")
+    for n,v in out.items():
+        matches=[e for e in ev if e["kind"]=="role" and e["role"]==n and e["status"]=="ok" and (n in {"planner","researcher"} or e["round"]==s["round"])]
+        require(bool(matches) and matches[-1].get("output_digest")==digest(v),"Role output digest mismatch")
+    feedback=s["feedback"]
+    require(isinstance(feedback,list) and len(feedback)<=54 and all(isinstance(f,dict) and set(f)=={"role","issue"} and f["role"] in {"security","tester","evaluator"} and isinstance(f["issue"],str) and len(f["issue"])<=2100 for f in feedback),"Invalid checkpoint feedback")
+    require(s["round"]>0 or not feedback,"Unexpected initial repair feedback")
+    enforce_text(canonical(feedback))
     if s["status"] in TERMINAL: require(not any(e["status"]=="reserved" for e in ev),"Terminal state has pending attempts")
     if s["status"] in {"PENDING_APPROVAL","DEMO_COMPLETE","EXPORTED"}:
         require(set(out)==set(nodes),"Incomplete terminal output")
