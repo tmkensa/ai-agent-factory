@@ -1,8 +1,16 @@
 # AI Agent Factory
 
+> **Platform v0.3 preview (review branch):** [English guide](docs/PLATFORM.md) · [العربية](docs/PLATFORM.ar.md) · [Verification](TESTING.md). Four provider adapters, custom specialists, explicitly authorized web/MCP evidence, digest-bound file staging, optional Docker test runner, searchable project memory, scheduling and a local dashboard.
+>
+> Start offline: `python -m factory.platform run examples/architecture.en.json`. Run checks: `python -m unittest discover -s tests -v` and `python tests/smoke_platform.py`. This preview is not a stable release; external models, Docker and hosted CI remain unverified.
+
+> **Architecture v0.2 preview:** [English](docs/ARCHITECTURE.md) · [العربية](docs/ARCHITECTURE.ar.md). Run with `python -m factory.architecture`. The v0.1 instructions below remain supported.
+
 **Build smaller, safer and measurable AI agent teams.**
 
 [العربية](README.ar.md) · [Security](SECURITY.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+
+## Original v0.1 starter (still supported)
 
 **v0.1.0 — starter implementation of the V3 design.** Not a production autonomous agent platform.
 

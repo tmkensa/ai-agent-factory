@@ -1,6 +1,14 @@
 # مصنع وكلاء الذكاء الاصطناعي — AI Agent Factory
 
+> **معاينة المنصة v0.3 (فرع المراجعة):** [دليل التشغيل العربي](docs/PLATFORM.ar.md) · [English](docs/PLATFORM.md) · [الاختبارات](TESTING.md). أربع واجهات مزودي نماذج، وكلاء مخصصون، مصادر الويب وMCP بموافقة صريحة، تجهيز ملفات ببصمة رقمية، اختبارات Docker اختيارية، ذاكرة قابلة للبحث، جدولة ولوحة متابعة محلية.
+>
+> التشغيل التجريبي: `python -m factory.platform run examples/architecture.ar.json`. الاختبارات: `python -m unittest discover -s tests -v` ثم `python tests/smoke_platform.py`. ليست نسخة مستقرة؛ لم تُتحقق النماذج الحية أو Docker أو CI المستضاف بعد.
+
+> **معاينة الهيكل v0.2:** [دليل الهيكل المعماري](docs/ARCHITECTURE.ar.md) · [English](docs/ARCHITECTURE.md). التشغيل عبر `python -m factory.architecture`، ويظل الأمر السابق مدعومًا.
+
 [English](README.md) · [الأمان](SECURITY.md) · [خارطة الطريق](ROADMAP.md) · [المساهمة](CONTRIBUTING.md)
+
+## الإصدار الأساسي v0.1 — ما زال مدعومًا
 
 **الإصدار الأولي v0.1.0 من تصور V3 — ليس منصة استقلالية جاهزة للإنتاج.**
 
