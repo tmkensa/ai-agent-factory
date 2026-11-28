@@ -145,3 +145,64 @@ class DynamicTests(unittest.TestCase):
             self.assertEqual(main(args+["run",str(task)]),0); old=json.loads(out.getvalue())
         with redirect_stdout(io.StringIO()) as out:
             self.assertEqual(main(args+["resume",old["id"]]),0); self.assertEqual(json.loads(out.getvalue()),old)
+
+    def test_schema_recovery_charged(self):
+        class Missing(DemoBackend):
+            name="fixture-model"; identity={"backend":"fixture-model"}
+            def __init__(self): self.failed=False; self.recovery=None
+            def call(self,role,payload):
+                v,m=super().call(role,payload)
+                if role=="tester" and not self.failed:
+                    self.failed=True; v["checks"].pop()
+                elif role=="tester":
+                    self.recovery=payload.get("output_recovery")
+                return v,m
+        model=Missing(); e=DynamicEngine(self.store,model,1)
+        r=e.execute(e.create(TASK,"single",call_limit=5))
+        self.assertEqual((r["status"],r["calls"]),("PENDING_APPROVAL",5))
+        self.assertEqual(model.recovery["error_code"],"MISSING_REVIEW_CHECKS")
+        self.assertEqual(len(r["artifact_versions"]),4)
+    def test_reserved_attempt_survives_interruption(self):
+        e=DynamicEngine(self.store,DemoBackend()); rid=e.create(TASK,"single",call_limit=5)
+        s=self.store.load(rid); s.update(status="RUNNING",calls=1)
+        s["events"]=[{"attempt":1,"role":"executor","kind":"dynamic","round":0,"status":"reserved","inputs":{}}]
+        self.store.save(s)
+        r=e.execute(rid); self.assertEqual((r["status"],r["calls"]),("DEMO_COMPLETE",5))
+        self.assertEqual(r["events"][0]["status"],"interrupted")
+    def test_critical_veto_even_at_score100(self):
+        class Critical(DemoBackend):
+            def call(self,role,payload):
+                v,m=super().call(role,payload)
+                if role=="security": v["critical"]=["Blocking issue"]
+                return v,m
+        e=DynamicEngine(self.store,Critical()); r=e.execute(e.create(TASK,"single"))
+        self.assertEqual((r["status"],r["gate"]["score"],r["gate"]["passed"]),("BLOCKED",100,False))
+        self.assertEqual(r["reviews"][0]["roots"],["executor"])
+    def test_failed_schema_no_budget_bypass(self):
+        class Missing(DemoBackend):
+            def call(self,role,payload):
+                v,m=super().call(role,payload)
+                if role=="tester": v["checks"].pop()
+                return v,m
+        e=DynamicEngine(self.store,Missing(),2); r=e.execute(e.create(TASK,"single",call_limit=4))
+        self.assertEqual((r["status"],r["calls"]),("BLOCKED",4))
+        self.assertFalse(any(v["agent"]=="evaluator" for v in r["artifact_versions"]))
+    def test_invalid_artifact_no_raw_secret_persistence(self):
+        class Leaky(DemoBackend):
+            def call(self,role,payload):
+                v,m=super().call(role,payload)
+                if role=="executor": v["draft"]="-----BEGIN PRIVATE KEY-----"
+                return v,m
+        e=DynamicEngine(self.store,Leaky(),2); rid=e.create(TASK,"single")
+        r=e.execute(rid)
+        self.assertEqual((r["status"],r["calls"]),("FAILED",1))
+        self.assertEqual(r["events"][0]["error_code"],"SECRET_DETECTED")
+        self.assertNotIn("BEGIN PRIVATE KEY",(self.store.path(rid)/"state.json").read_text(encoding="utf-8"))
+    def test_context_limit_explicit_failure(self):
+        from factory.architecture.artifacts import make_payload
+        task=TASK|{"context":"a"*24000,"sources":[{"id":"x","text":"b"*12000}]}
+        plan=make_plan(task,"single")
+        s={"task":task,"plan":plan,"round":0}
+        with patch("factory.architecture.artifacts.MAX_CONTEXT_BYTES",10):
+            with self.assertRaisesRegex(FactoryError,"Context byte limit"):
+                make_payload(s,"executor",{}, {})

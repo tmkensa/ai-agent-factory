@@ -21,3 +21,5 @@ Use the existing show/resume/approve commands with the same project and route co
 ## Verification
 
 Unit tests use deterministic doubles or mocked transport; they do not establish live-model quality or security. Re-run real Ollama, Gemini and hybrid tests after checkout. Compare scores only for matching original task contracts and interpret model review as provisional. No release or production claim.
+
+Integration smoke additionally exercises the dynamic CLI over actual loopback HTTP with synthetic provider replies, per-agent model selection and a local digest-approved export. No live inference is performed by this fixture. The CLI plan command is read-only and makes no model calls. Approval requires explicit digest and destination but no provider credentials because it is a local export.

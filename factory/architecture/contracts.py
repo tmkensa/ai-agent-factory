@@ -13,6 +13,7 @@ CODES = {
     "Invalid critical list":"INVALID_CRITICAL_LIST", "Invalid text field":"INVALID_TEXT",
     "Role output must be an object":"INVALID_OBJECT", "Model output must be JSON object":"INVALID_OBJECT",
     "Invalid specialist output":"INVALID_SPECIALIST", "Specialist output limit":"SPECIALIST_OUTPUT_LIMIT",
+    "Artifact byte limit exceeded":"ARTIFACT_SIZE_LIMIT",
 }
 RETRYABLE = frozenset(CODES.values()) | {"INVALID_JSON"}
 
@@ -21,6 +22,7 @@ def error_code(exc):
         msg = str(exc)
         if msg in CODES: return CODES[msg]
         if msg.startswith("Potential secret detected"): return "SECRET_DETECTED"
+        if msg=="Context byte limit exceeded": return "CONTEXT_LIMIT"
         if re.fullmatch(r"HTTP [1-5][0-9]{2}; no automatic retry",msg):
             return "PROVIDER_HTTP_"+msg[5:8]
         return "FACTORY_POLICY_ERROR"

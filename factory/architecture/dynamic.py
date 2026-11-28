@@ -15,6 +15,7 @@ def contract(s):
 
 def check_routes(identity,plan):
     mapped=identity.get("roles",{})
+    require(isinstance(mapped,dict) and all(isinstance(k,str) for k in mapped),"Invalid route mapping")
     allowed={"agent:"+n for n,r in plan["registry"].items() if r["kind"]=="specialist"}
     require(all(not k.startswith("agent:") or k in allowed for k in mapped),"Mapped agent not in team")
 
@@ -30,7 +31,7 @@ def validate_dynamic(s,rid):
     require(isinstance(s["identity"],dict) and s["identity"].get("backend")==s["backend"],"Dynamic backend mismatch")
     require(digest(contract(s))==s["contract_digest"],"Dynamic contract mismatch")
     check_routes(s["identity"],plan)
-    require(s["status"] in TERMINAL|{"READY","RUNNING","FAILED"},"Invalid dynamic status")
+    require(isinstance(s["status"],str) and s["status"] in TERMINAL|{"READY","RUNNING","FAILED"},"Invalid dynamic status")
     events=s["events"]; artifacts=s["artifacts"]; reviews=s["reviews"]
     require(isinstance(events,list) and len(events)==s["calls"] and isinstance(artifacts,dict) and isinstance(reviews,list) and s["round"]<=len(reviews)<=s["round"]+1,"Dynamic ledger length mismatch")
     active={}; seen=set(); cursor=0
@@ -74,6 +75,7 @@ def validate_dynamic(s,rid):
         require(final is None and s.get("draft_digest") is None,"Active run contains terminal result")
     if s["status"] in TERMINAL:
         require(not any(e["status"]=="reserved" for e in events),"Terminal state has outstanding reservation")
+    require(s["status"]=="EXPORTED" or not s.get("export"),"Unexpected export receipt")
     enforce_text(canonical(task))
     return active
 
