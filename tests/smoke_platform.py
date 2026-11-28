@@ -1,5 +1,6 @@
 """End-to-end fixture checks; no external APIs, real model inference or Docker."""
 import json, sqlite3, tempfile, subprocess, sys, time, threading
+from contextlib import closing
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -20,7 +21,11 @@ with tempfile.TemporaryDirectory() as directory:
     mem=cli('run','examples/architecture.en.json','--memory-query','backup'); assert mem['status']=='DEMO_COMPLETE'
     jid=cli('schedule','examples/architecture.en.json','--interval',3600,'--approve')['id']; assert cli('tick')==[]
     db=d/'runs/smoke/platform.sqlite3'
-    with sqlite3.connect(db) as c:c.execute('update jobs set due=? where id=?',(time.time()-1,jid))
+    # Connection.__exit__ commits/rolls back but does not close the handle.
+    # Explicitly close before temporary-directory cleanup (required on Windows).
+    with closing(sqlite3.connect(db)) as c:
+        with c:
+            c.execute('update jobs set due=? where id=?',(time.time()-1,jid))
     tick=cli('tick'); assert tick[0]['status']=='DEMO_COMPLETE'; assert cli('tick')==[]; cli('cancel',jid); assert cli('jobs')[0]['status']=='cancelled'
     page=Path(cli('dashboard',d/'dashboard.html')['dashboard']); assert page.is_file() and 'backup procedure fixture' not in page.read_text(encoding="utf-8")
     dig=cli('digest','examples/stage-plan.json')['digest']; cli('stage','examples/stage-plan.json',d/'staged','--digest',dig)
@@ -54,7 +59,8 @@ with tempfile.TemporaryDirectory() as directory:
         assert MCP(srv.server_port,['read']).call('read',{},True)['text']=='fixture evidence';print('PASS: actual loopback HTTP MCP tools/list and tools/call with synthetic local server.')
     finally:srv.shutdown();srv.server_close();t.join()
     try: srv=ThreadingHTTPServer(('127.0.0.1',11434),Handler)
-    except OSError: print('SKIP: Ollama fixture port unavailable (no real service accessed).')
+    except OSError as exc:
+        raise RuntimeError('Ollama fixture port unavailable; refusing to skip integration coverage or contact another service') from exc
     else:
         t=threading.Thread(target=srv.serve_forever,daemon=True);t.start()
         try:
